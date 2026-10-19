@@ -1,0 +1,44 @@
+# Publica la landing estática en GitHub Pages en cada push a main.
+name: Desplegar en GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Permisos mínimos: leer el código, publicar en Pages y el token OIDC que exige deploy-pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Un solo despliegue a la vez; no cancela uno en curso.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # Solo se publican estos archivos (el README y el workflow no).
+      - name: Preparar _site
+        run: |
+          mkdir _site
+          cp index.html og.jpg robots.txt _site/
+      - name: Subir el artefacto
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Despliegue en GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
